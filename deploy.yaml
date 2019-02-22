@@ -1,0 +1,77 @@
+apiVersion: extensions/v1beta1 
+kind: Deployment
+metadata:
+  name: tomcat-java-demo
+  namespace: default
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      project: www
+      app: java-demo
+  template:
+    metadata:
+      labels:
+        project: www
+        app: java-demo
+    spec:
+      imagePullSecrets:
+      - name: registry-pull-secret
+      containers:
+      - name: tomcat
+        image: 192.168.9.85/project/demo:latest
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 8080
+          name: web
+          protocol: TCP
+        resources:
+          requests:
+            cpu: 0.5
+            memory: 1Gi
+          limits:
+            cpu: 1
+            memory: 2Gi
+        livenessProbe:
+          httpGet:
+            path: /
+            port: 8080
+          initialDelaySeconds: 60
+          timeoutSeconds: 20
+        readinessProbe:
+          httpGet:
+            path: /
+            port: 8080
+          initialDelaySeconds: 60
+          timeoutSeconds: 20
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: tomcat-java-demo
+  namespace: default
+spec:
+  selector:
+    project: www
+    app: java-demo
+  ports:
+  - name: web
+    port: 80
+    targetPort: 8080
+
+---
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: tomcat-java-demo 
+  namespace: default
+spec:
+  rules:
+    - host: java.ctnrs.com
+      http:
+        paths:
+        - path: /
+          backend:
+            serviceName: tomcat-java-demo 
+            servicePort: 80
